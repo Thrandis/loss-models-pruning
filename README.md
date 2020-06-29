@@ -1,6 +1,8 @@
 # Revisiting Loss Modelling for Unstructured Pruning 
 
-This is the repository containing the code of the paper "Revisiting Loss Modelling for Unstructured Pruning".
+This is the repository containing the code of the paper:
+
+César Laurent, Camille Ballas, Thomas George, Nicolas Ballas, Pascal Vincent, _Revisiting Loss Modelling for Unstructured Pruning_, https://arxiv.org/abs/2006.12279, 2020.
 
 
 ### Code structure:
