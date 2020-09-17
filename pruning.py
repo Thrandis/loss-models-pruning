@@ -25,7 +25,7 @@ def mask_net(net, mask, bias=False):
 
 
 def get_mask_iteratively(method, net, prunings, loader=None, n=float('inf'),
-                         reg=0.0, previous_mask=None):
+                         reg=0.0, previous_mask=None, k=None):
     """Iteratively prune using pruning ratios specified in prunings.
 
     E.g. [0.2, 0.4, 0.6, 0.8] to prune 80 % of the network in 4 iterations.
@@ -33,12 +33,12 @@ def get_mask_iteratively(method, net, prunings, loader=None, n=float('inf'),
     """
     for pruning in prunings:
         previous_mask = get_mask(method, net, pruning, loader, n, reg=reg,
-                                 previous_mask=previous_mask)
+                                 previous_mask=previous_mask, k=k)
     return previous_mask
 
 
 def get_mask(method, net, pruning, loader=None, n=float('inf'), reg=0.0,
-             previous_mask=None):
+             previous_mask=None, k=None):
     """Returns the maks computed on net by method."""
     # Prepare network
     net = copy.deepcopy(net)
@@ -56,10 +56,10 @@ def get_mask(method, net, pruning, loader=None, n=float('inf'), reg=0.0,
         grads = GradComputer().compute(net, loader, n=n)
         diags = [torch.zeros_like(p) for p in params]
     elif method in 'QM':
-        grads, diags = DiagonalGGNComputer().compute(net, loader, n=n)
+        grads, diags = DiagonalGGNComputer().compute(net, loader, n=n, k=k)
     elif method == 'OBD':
         grads = [torch.zeros_like(p) for p in params]
-        _, diags = DiagonalGGNComputer().compute(net, loader, n=n)
+        _, diags = DiagonalGGNComputer().compute(net, loader, n=n, k=k)
     else:
         raise NotImplementedError
 
@@ -171,7 +171,7 @@ class DiagonalGGNComputer():
         for handle in handles:
             handle.remove()
 
-    def compute(self, net, loader, device='cuda', n=float('inf')):
+    def compute(self, net, loader, device='cuda', n=float('inf'), k=None):
         params = get_params(net, False)
         gradients = [torch.zeros_like(p) for p in params]
         diags_ggn = [torch.zeros_like(p) for p in params]
@@ -193,9 +193,19 @@ class DiagonalGGNComputer():
 
             # Backprops for the GGN
             probs = F.softmax(outs, dim=1).detach_()
-            for j in range(probs.size(-1)):
-                (log_probs[:, j] * probs[:, j].sqrt()).mean().backward(retain_graph=True)
-                net.zero_grad()
+            if k is None:  # Full Fisher
+                for j in range(probs.size(-1)):
+                    to_backprop = (log_probs[:, j] * probs[:, j].sqrt()).mean()
+                    to_backprop.backward(retain_graph=True)
+                    net.zero_grad()
+            else:  # Monte-Carlo approximation
+                sampled = torch.multinomial(probs, k, replacement=True)
+                for j in range(k):
+                    gathered_log_probs = torch.gather(log_probs, 1,
+                                                      s[:, k].unsqueeze(1))
+                    to_backprop = (gathered_log_probs * (1 / k) ** 0.5).mean()
+                    to_backprop.backward(retain_graph=True)
+                    net.zero_grad()
             for d, p in zip(diags_ggn, params):
                 d += self.diags[p].detach()
             self.state = {}

@@ -20,6 +20,7 @@ def main(args):
     nexamples = args.mask_n #1600
     reg = 0.0
     pi = args.mask_pi
+    k = args.mask_k
     exp=True
 
     device = "cuda"
@@ -68,7 +69,7 @@ def main(args):
                 #import pdb; pdb.set_trace()
                 mask = get_mask_iteratively(method, model, prunings,
                                             loader=train_loader, n=nexamples,
-                                            reg=reg)
+                                            reg=reg, k=k)
 
                 print("Compute time {}_{}:{}".format(method, level, time.time() - s1))
                 ### Save Make

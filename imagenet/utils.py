@@ -76,6 +76,7 @@ def prepare_parser():
   parser.add_argument('--mask_reg', default=0.0, type=float, help='Mask regularisation.')
   parser.add_argument('--mask_n', default=1600, type=int, help='Number os sample use to esimate the masks.')
   parser.add_argument('--mask_pi', default=1, type=int, help='Mask pruning iterations.')
+  parser.add_argument('--mask_k', default=10, type=int, help='Number of Monte-Carlo samples for the Fisher.')
   parser.add_argument('--mask_bias', default=False, type=float, help='is the pruning mask applied to bias?')
   parser.add_argument('--load_weight', default=None, type=str,
                       help='path of model checkpoint which will be used to initialize the weight')
