@@ -25,7 +25,7 @@ def mask_net(net, mask, bias=False):
 
 
 def get_mask_iteratively(method, net, prunings, loader=None, n=float('inf'),
-                         reg=0.0, previous_mask=None, k=None):
+                         reg=0.0, previous_mask=None, k=0):
     """Iteratively prune using pruning ratios specified in prunings.
 
     E.g. [0.2, 0.4, 0.6, 0.8] to prune 80 % of the network in 4 iterations.
@@ -38,7 +38,7 @@ def get_mask_iteratively(method, net, prunings, loader=None, n=float('inf'),
 
 
 def get_mask(method, net, pruning, loader=None, n=float('inf'), reg=0.0,
-             previous_mask=None, k=None):
+             previous_mask=None, k=0):
     """Returns the maks computed on net by method."""
     # Prepare network
     net = copy.deepcopy(net)
@@ -171,7 +171,7 @@ class DiagonalGGNComputer():
         for handle in handles:
             handle.remove()
 
-    def compute(self, net, loader, device='cuda', n=float('inf'), k=None):
+    def compute(self, net, loader, device='cuda', n=float('inf'), k=0):
         params = get_params(net, False)
         gradients = [torch.zeros_like(p) for p in params]
         diags_ggn = [torch.zeros_like(p) for p in params]
@@ -193,7 +193,7 @@ class DiagonalGGNComputer():
 
             # Backprops for the GGN
             probs = F.softmax(outs, dim=1).detach_()
-            if k is None:  # Full Fisher
+            if k == 0:  # Full Fisher
                 for j in range(probs.size(-1)):
                     to_backprop = (log_probs[:, j] * probs[:, j].sqrt()).mean()
                     to_backprop.backward(retain_graph=True)
