@@ -202,7 +202,7 @@ class DiagonalGGNComputer():
                 sampled = torch.multinomial(probs, k, replacement=True)
                 for j in range(k):
                     gathered_log_probs = torch.gather(log_probs, 1,
-                                                      sampled[:, k].unsqueeze(1))
+                                                      sampled[:, j].unsqueeze(1))
                     to_backprop = (gathered_log_probs * (1 / k) ** 0.5).mean()
                     to_backprop.backward(retain_graph=True)
                     net.zero_grad()
